@@ -68,7 +68,7 @@
         }
 
         .trip-dates {
-            font-size: 8px;
+            font-size: 10px;
             color: var(--dim);
         }
 
@@ -335,7 +335,7 @@
         .btn {
             padding: 14px 16px;
             font-family: 'Press Start 2P', monospace;
-            font-size: 9px;
+            font-size: 12px;
             cursor: pointer;
             border: 3px solid;
             box-shadow: 4px 4px 0 var(--shadow);
@@ -385,7 +385,7 @@
 
         .btn-sm {
             padding: 8px 12px;
-            font-size: 7px;
+            font-size: 10px;
             box-shadow: 2px 2px 0 var(--shadow);
             min-height: 36px;
         }
@@ -739,7 +739,7 @@
         /* ── MOBILE ── */
         @media (max-width: 420px) {
             body {
-                font-size: 9px;
+                font-size: 12px;
             }
 
             .trip-title {
@@ -747,16 +747,16 @@
             }
 
             .tab-btn {
-                font-size: 7px;
+                font-size: 12px;
                 padding: 10px 1px;
             }
 
             .btn {
-                font-size: 8px;
+                font-size: 12px;
             }
 
             .exp-amt {
-                font-size: 10px;
+                font-size: 12px;
             }
         }
 
@@ -862,13 +862,13 @@
         .sg-receiver {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-size: 11px;
             margin-bottom: 8px;
         }
 
         .sg-label {
-            font-size: 8px;
+            font-size: 10px;
             color: var(--dim);
             padding: 2px 6px;
             border: 2px solid var(--dim);
@@ -887,12 +887,12 @@
         }
 
         .sg-amt small {
-            font-size: 8px;
+            font-size: 10px;
             color: var(--dim);
         }
 
         .rate-notice {
-            font-size: 8px;
+            font-size: 10px;
             padding: 10px 12px;
             margin-bottom: 12px;
             border: 2px solid;
@@ -910,6 +910,26 @@
             border-color: var(--yellow);
             color: var(--yellow);
         }
+
+        /* ── CURRENCY TOGGLE ── */
+        .cur-toggle {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+        }
+        .cur-btn {
+            flex: 1;
+            padding: 8px 4px;
+            background: var(--panel);
+            border: 2px solid var(--border);
+            color: var(--dim);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+            min-height: 36px;
+        }
+        .cur-btn.active { background: var(--border); color: #fdfaf6; }
 
         /* ── BLINK CURSOR ── */
         @keyframes blink {
@@ -1055,6 +1075,11 @@
     ════════════════════════════════════ -->
     <div id="tab-list" class="tab">
         <div class="sum-bar" id="sum-bar"></div>
+        <div class="cur-toggle">
+            <button class="cur-btn active" data-cur="USD" onclick="setDisplayCur('USD')">$ USD</button>
+            <button class="cur-btn" data-cur="TWD" onclick="setDisplayCur('TWD')">NT$ TWD</button>
+            <button class="cur-btn" data-cur="CNY" onclick="setDisplayCur('CNY')">¥ CNY</button>
+        </div>
 
         <div class="filter-bar">
             <button class="flt-btn active" onclick="setFilter('all',this)">ALL</button>
@@ -1073,6 +1098,11 @@
          TAB: 結算
     ════════════════════════════════════ -->
     <div id="tab-settle" class="tab">
+        <div class="cur-toggle">
+            <button class="cur-btn active" data-cur="USD" onclick="setDisplayCur('USD')">$ USD</button>
+            <button class="cur-btn" data-cur="TWD" onclick="setDisplayCur('TWD')">NT$ TWD</button>
+            <button class="cur-btn" data-cur="CNY" onclick="setDisplayCur('CNY')">¥ CNY</button>
+        </div>
         <div id="settle-live"></div>
     </div>
 
@@ -1149,6 +1179,9 @@
         rates: {TWD_USD: null, CNY_USD: null, updatedAt: null},
         gs: {lastSyncAt: null},
     };
+
+    /* display state */
+    let displayCur = 'USD';
 
     /* form temp state */
     let fPayer = 'duck';
@@ -1322,7 +1355,7 @@
         if (!filtered.length) {
             el.innerHTML = S.expenses.length === 0
                 ? `<div class="empty">▶ 還沒有費用記錄<br>點「記帳」開始輸入！</div>`
-                : `<div class="empty">no-data</div>`;
+                : `<div class="empty">此人尚未付款</div>`;
             return;
         }
 
@@ -1341,21 +1374,50 @@
             ).join('');
     }
 
+    function setDisplayCur(cur) {
+        displayCur = cur;
+        document.querySelectorAll('.cur-btn').forEach(b => {
+            b.className = 'cur-btn' + (b.dataset.cur === cur ? ' active' : '');
+        });
+        renderList();
+        if (document.getElementById('tab-settle').classList.contains('active')) renderSettle();
+    }
+
     function renderSummaryBar() {
+        const twdRate = S.rates?.TWD_USD || 0;
+        const cnyRate = S.rates?.CNY_USD || 0;
+        const hasRates = twdRate > 0 && cnyRate > 0;
+
+        const toUSD = (amt, cur) =>
+            cur === 'USD' ? amt : cur === 'TWD' ? amt * twdRate : cur === 'CNY' ? amt * cnyRate : 0;
+
         const totals = {};
-        MEMBERS.forEach(m => totals[m.id] = {});
+        MEMBERS.forEach(m => { totals[m.id] = {}; });
         S.expenses.forEach(e => {
             if (!totals[e.paidBy][e.cur]) totals[e.paidBy][e.cur] = 0;
             totals[e.paidBy][e.cur] += e.amt;
         });
 
+        const sym = CUR_SYM[displayCur];
+        const dec = displayCur === 'USD' ? 2 : 0;
+
         document.getElementById('sum-bar').innerHTML = MEMBERS.map(m => {
-            const rows = Object.entries(totals[m.id])
-                .map(([c, v]) => `${CUR_SYM[c]}${v.toLocaleString('en', {maximumFractionDigits: 0})}`)
-                .join('<br>') || '—';
+            let val;
+            if (hasRates) {
+                const usdTotal = Object.entries(totals[m.id])
+                    .reduce((s, [c, v]) => s + toUSD(v, c), 0);
+                const converted = displayCur === 'USD' ? usdTotal
+                    : displayCur === 'TWD' ? usdTotal / twdRate
+                    : usdTotal / cnyRate;
+                val = `${sym}${converted.toLocaleString('en', {maximumFractionDigits: dec})}`;
+            } else {
+                val = Object.entries(totals[m.id])
+                    .map(([c, v]) => `${CUR_SYM[c]}${v.toLocaleString('en', {maximumFractionDigits: 0})}`)
+                    .join('<br>') || '—';
+            }
             return `<div class="sum-chip ${m.id}">
       <div class="chip-name" style="color:${m.color}">${m.emoji} ${m.name}</div>
-      <div class="chip-val"  style="color:${m.color}">${rows}</div>
+      <div class="chip-val"  style="color:${m.color}">${val}</div>
     </div>`;
         }).join('');
     }
@@ -1428,7 +1490,7 @@
         document.getElementById('edit-body').innerHTML = `
     <div class="form-group">
       <label>日期</label>
-      <input type="date" id="ef-date" value="${e.date}">
+      <input type="date" id="ef-date" value="${String(e.date||'').slice(0,10)}">
     </div>
     <div class="form-group">
       <label>說明</label>
@@ -1544,24 +1606,33 @@
         const cnyRate = S.rates?.CNY_USD || 0;
         const hasRates = twdRate > 0 && cnyRate > 0;
 
-        const toUSD = (amt, cur) => {
-            if (cur === 'USD') return amt;
-            if (cur === 'TWD') return hasRates ? amt * twdRate : 0;
-            if (cur === 'CNY') return hasRates ? amt * cnyRate : 0;
-            return amt;
+        const toUSD = (amt, cur) =>
+            cur === 'USD' ? amt : cur === 'TWD' ? amt * twdRate : cur === 'CNY' ? amt * cnyRate : 0;
+
+        const fromUSD = (usd) => {
+            if (displayCur === 'USD') return usd;
+            if (displayCur === 'TWD') return twdRate > 0 ? usd / twdRate : null;
+            if (displayCur === 'CNY') return cnyRate > 0 ? usd / cnyRate : null;
+            return usd;
         };
 
-        const paid = {}, owed = {}, bal = {};
-        MEMBERS.forEach(m => {
-            paid[m.id] = 0;
-            owed[m.id] = 0;
-            bal[m.id] = 0;
-        });
+        const sym = CUR_SYM[displayCur];
+        const dec = displayCur === 'USD' ? 2 : 0;
+        const fmtD = (usd) => {
+            const v = fromUSD(usd);
+            return v !== null ? `${sym}${v.toLocaleString('en', {maximumFractionDigits: dec})}` : `$${usd.toFixed(2)}`;
+        };
+
+        /* compute balances */
+        const paid = {}, owed = {}, bal = {}, paidByCur = {};
+        MEMBERS.forEach(m => { paid[m.id] = 0; owed[m.id] = 0; bal[m.id] = 0; paidByCur[m.id] = {}; });
 
         S.expenses.forEach(e => {
             const usd = toUSD(e.amt, e.cur);
             paid[e.paidBy] += usd;
             bal[e.paidBy] += usd;
+            if (!paidByCur[e.paidBy][e.cur]) paidByCur[e.paidBy][e.cur] = 0;
+            paidByCur[e.paidBy][e.cur] += e.amt;
             if (e.splitType === 'custom' && e.custom) {
                 e.among.forEach(id => {
                     const share = toUSD(e.custom[id] || 0, e.cur);
@@ -1570,36 +1641,48 @@
                 });
             } else {
                 const share = usd / e.among.length;
-                e.among.forEach(id => {
-                    owed[id] += share;
-                    bal[id] -= share;
-                });
+                e.among.forEach(id => { owed[id] += share; bal[id] -= share; });
             }
         });
 
         const txs = minimizeTx({...bal});
         let html = '';
 
-        /* rate status notice */
+        /* rate notice */
         html += hasRates
             ? `<div class="rate-notice ok">✓ 匯率：1 TWD = ${twdRate} USD　1 CNY = ${cnyRate} USD</div>`
             : `<div class="rate-notice warn">⚠ 未設定匯率，TWD/CNY 費用暫不計入<br>請至「設定」頁輸入匯率後儲存</div>`;
 
-        /* suggestion cards */
         if (S.expenses.length === 0) {
             html += `<div class="empty">▶ 還沒有費用記錄<br>點「記帳」開始輸入！</div>`;
-        } else if (txs.length === 0) {
+            document.getElementById('settle-live').innerHTML = html;
+            return;
+        }
+
+        /* ── 個人花費 ── */
+        html += `<div class="sec-title">個人花費</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+        ${MEMBERS.map(m => {
+            const origLines = Object.entries(paidByCur[m.id])
+                .map(([c, v]) => `${CUR_SYM[c]}${v.toLocaleString('en', {maximumFractionDigits: 0})}`)
+                .join('<br>') || '—';
+            const converted = hasRates ? fmtD(paid[m.id]) : null;
+            return `<div class="sum-chip ${m.id}" style="flex:1;padding:12px 8px">
+                <div class="chip-name" style="color:${m.color}">${m.emoji} ${m.name}</div>
+                <div style="font-size:8px;color:var(--dim);margin-top:6px;line-height:1.8">${origLines}</div>
+                ${converted ? `<div style="font-size:10px;color:${m.color};margin-top:4px">${converted}</div>` : ''}
+            </div>`;
+        }).join('')}
+        </div>`;
+
+        /* ── 分帳建議 ── */
+        if (txs.length === 0) {
             html += `<div class="empty">✓ 完全平衡！不需要轉帳</div>`;
         } else {
             html += `<div class="sec-title">即時分帳建議</div>`;
             txs.forEach(tx => {
                 const fm = MEMBERS.find(m => m.id === tx.from);
                 const tm = MEMBERS.find(m => m.id === tx.to);
-                const homeRate = fm.home === 'TWD' && twdRate > 0 ? 1 / twdRate
-                    : fm.home === 'CNY' && cnyRate > 0 ? 1 / cnyRate : 0;
-                const homeAmt = homeRate > 0
-                    ? (tx.amt * homeRate).toFixed(fm.home === 'USD' ? 2 : 0) : null;
-
                 html += `<div class="suggest-card">
                     <div class="sg-receiver">
                         <span style="color:${tm.color}">${tm.emoji} ${tm.name}</span>
@@ -1607,38 +1690,35 @@
                     </div>
                     <div class="sg-payer">
                         <span style="color:${fm.color}">${fm.emoji} ${fm.name}</span>
-                        <span class="sg-amt">$${tx.amt.toFixed(2)} <small>USD</small></span>
+                        <span class="sg-amt">${fmtD(tx.amt)} <small>${displayCur}</small></span>
                     </div>
-                    ${homeAmt ? `<div class="tx-note" style="margin-top:6px">≈ ${CUR_SYM[fm.home]}${homeAmt} ${fm.home}（${fm.name} 視角）</div>` : ''}
                 </div>`;
             });
         }
 
-        /* balance overview */
-        if (S.expenses.length > 0) {
-            html += `<div class="sec-title">花費總覽</div>
-            <div class="panel" style="padding:0;overflow-x:auto">
-              <table class="bal-table">
-                <thead><tr>
-                  <th>成員</th><th>已付</th><th>應付</th><th>淨額</th>
-                </tr></thead>
-                <tbody>
-                  ${MEMBERS.map(m => {
+        /* ── 花費總覽 ── */
+        html += `<div class="sec-title">花費總覽</div>
+        <div class="panel" style="padding:0;overflow-x:auto">
+          <table class="bal-table">
+            <thead><tr>
+              <th>成員</th><th>已付(${displayCur})</th><th>應付(${displayCur})</th><th>淨額</th>
+            </tr></thead>
+            <tbody>
+              ${MEMBERS.map(m => {
                 const b = bal[m.id];
                 return `<tr>
-                      <td style="color:${m.color}">${m.emoji} ${m.name}</td>
-                      <td>$${paid[m.id].toFixed(2)}</td>
-                      <td>$${owed[m.id].toFixed(2)}</td>
-                      <td class="${b >= 0 ? 'pos' : 'neg'}">${b >= 0 ? '+' : ''}$${b.toFixed(2)}</td>
-                    </tr>`;
+                  <td style="color:${m.color}">${m.emoji} ${m.name}</td>
+                  <td>${fmtD(paid[m.id])}</td>
+                  <td>${fmtD(owed[m.id])}</td>
+                  <td class="${b >= 0 ? 'pos' : 'neg'}">${b >= 0 ? '+' : ''}${fmtD(Math.abs(b))}</td>
+                </tr>`;
             }).join('')}
-                </tbody>
-              </table>
-            </div>`;
+            </tbody>
+          </table>
+        </div>`;
 
-            if (hasRates) {
-                html += `<button class="btn btn-blue btn-full" onclick="exportReport()" style="margin-top:12px">匯出結算報告 TXT</button>`;
-            }
+        if (hasRates) {
+            html += `<button class="btn btn-blue btn-full" onclick="exportReport()" style="margin-top:12px">匯出結算報告 TXT</button>`;
         }
 
         document.getElementById('settle-live').innerHTML = html;
@@ -1863,7 +1943,9 @@
     }
 
     function fmtDate(str) {
-        const d = new Date(str + 'T12:00:00');
+        const s = String(str || '').slice(0, 10);
+        const d = new Date(s + 'T12:00:00');
+        if (isNaN(d)) return str || '';
         const wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
         return `${d.getMonth() + 1}/${d.getDate()} (${wd})`;
     }

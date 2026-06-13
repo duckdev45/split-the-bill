@@ -66,6 +66,10 @@ function pull(sheetName) {
       if (h === 'among' || h === 'custom') {
         try   { obj[h] = typeof v === 'string' ? JSON.parse(v) : v; }
         catch (_) { obj[h] = h === 'among' ? [] : {}; }
+      } else if (h === 'date') {
+        obj[h] = v instanceof Date
+          ? Utilities.formatDate(v, 'UTC', 'yyyy-MM-dd')
+          : String(v ?? '').slice(0, 10);
       } else if (h === 'amt') {
         obj[h] = Number(v) || 0;
       } else {
