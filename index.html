@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>split-the-bill</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f1ec; /* Surface/page */
+            --panel: #fdfaf6; /* Surface/Raised */
+            --border: #1a7050; /* Eagle green primary */
+            --text: #1c1914; /* foreground */
+            --bright: #1c1914;
+            --dim: #6b6056; /* muted-foreground */
+            --green: #14603e; /* alert-green */
+            --yellow: #8a6000; /* alert-yellow */
+            --red: #8c2e26; /* alert-red */
+            --cyan: #1858a8; /* alert-blue */
+            --duck: #8a6000; /* amber */
+            --sansa: #14603e; /* forest green */
+            --huniu: #1858a8; /* navy */
+            --shadow: #94ccb0; /* primary-200 */
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: var(--bg);
+            background-image: linear-gradient(rgba(26, 112, 80, .06) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(26, 112, 80, .06) 1px, transparent 1px);
+            background-size: 8px 8px;
+            color: var(--text);
+            font-size: 10px;
+            line-height: 1.9;
+            min-height: 100vh;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* ── LAYOUT ── */
+        #app {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 8px 10px env(safe-area-inset-bottom, 40px);
+        }
+
+        /* ── HEADER ── */
+        header {
+            text-align: center;
+            padding: 16px 8px 12px;
+            border-bottom: 3px solid var(--border);
+            margin-bottom: 14px;
+            background: var(--panel);
+            box-shadow: 0 3px 0 var(--shadow);
+        }
+
+        .trip-title {
+            font-size: 13px;
+            color: var(--border);
+            text-shadow: 2px 2px 0 var(--shadow);
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+
+        .trip-dates {
+            font-size: 8px;
+            color: var(--dim);
+        }
+
+        .pixel-chars {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            margin: 14px 0 4px;
+        }
+
+        .char-portrait {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .char-portrait .emoji {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .char-portrait .cname {
+            font-size: 12px;
+            margin-top: 2px;
+            font-weight: bold;
+        }
+
+        /* ── NAV TABS ── */
+        nav {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 2px;
+            background: var(--panel);
+            border: 3px solid var(--border);
+            color: var(--dim);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 3px 3px 0 var(--shadow);
+            min-height: 44px;
+        }
+
+        .tab-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--shadow);
+        }
+
+        .tab-btn.active {
+            background: var(--border);
+            color: #fdfaf6;
+            box-shadow: 3px 3px 0 var(--shadow);
+        }
+
+        /* ── PANELS ── */
+        .panel {
+            background: var(--panel);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--shadow);
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            color: var(--border);
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        /* ── FORM ELEMENTS ── */
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--dim);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px 10px;
+            background: #fdfaf6;
+            border: 3px solid var(--border);
+            color: var(--bright);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 12px;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            min-height: 48px;
+            box-shadow: 3px 3px 0 var(--shadow);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--border);
+            box-shadow: 3px 3px 0 var(--shadow), 0 0 0 3px rgba(26, 112, 80, .15);
+            background-color: #fffef9;
+        }
+
+        select option {
+            background: #fdfaf6;
+            color: var(--bright);
+        }
+
+        select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Crect x='0' y='0' width='10' height='2' fill='%231a7050'/%3E%3Crect x='2' y='2' width='6' height='2' fill='%231a7050'/%3E%3Crect x='4' y='4' width='2' height='2' fill='%231a7050'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: calc(100% - 12px) center;
+            padding-right: 36px;
+        }
+
+        input[type="date"] {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14'%3E%3Crect x='0' y='2' width='14' height='12' fill='none' stroke='%231a7050' stroke-width='2'/%3E%3Crect x='3' y='0' width='2' height='5' fill='%231a7050'/%3E%3Crect x='9' y='0' width='2' height='5' fill='%231a7050'/%3E%3Crect x='0' y='6' width='14' height='2' fill='%231a7050'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: calc(100% - 12px) center;
+            padding-right: 38px;
+        }
+
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0;
+            cursor: pointer;
+            position: absolute;
+            right: 0;
+            width: 44px;
+            height: 100%;
+        }
+
+        /* ── CHARACTER BUTTONS ── */
+        .char-selector {
+            display: flex;
+            gap: 6px;
+        }
+
+        .char-btn {
+            flex: 1;
+            padding: 14px 4px;
+            background: #fdfaf6;
+            border: 3px solid var(--border);
+            color: var(--dim);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 3px 3px 0 var(--shadow);
+            line-height: 2;
+            min-height: 60px;
+        }
+
+        .char-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0 var(--shadow);
+        }
+
+        .char-btn.sel-duck {
+            border-color: var(--duck);
+            color: var(--duck);
+            background: #fef4cc;
+        }
+
+        .char-btn.sel-sansa {
+            border-color: var(--sansa);
+            color: var(--sansa);
+            background: #e4eee8;
+        }
+
+        .char-btn.sel-huniu {
+            border-color: var(--huniu);
+            color: var(--huniu);
+            background: #dce8f6;
+        }
+
+        /* ── SPLIT CHECKBOXES ── */
+        .split-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .split-tile {
+            flex: 1;
+            padding: 12px 4px;
+            background: #fdfaf6;
+            border: 2px solid #94ccb0;
+            cursor: pointer;
+            text-align: center;
+            font-size: 10px;
+            color: var(--dim);
+            line-height: 2;
+            user-select: none;
+            min-height: 56px;
+        }
+
+        .split-tile.on-duck {
+            border-color: var(--duck);
+            color: var(--duck);
+            background: #fef4cc;
+        }
+
+        .split-tile.on-sansa {
+            border-color: var(--sansa);
+            color: var(--sansa);
+            background: #e4eee8;
+        }
+
+        .split-tile.on-huniu {
+            border-color: var(--huniu);
+            color: var(--huniu);
+            background: #dce8f6;
+        }
+
+        /* ── AMOUNT ROW ── */
+        .amount-row {
+            display: flex;
+            gap: 6px;
+        }
+
+        .amount-row input {
+            flex: 2;
+        }
+
+        .amount-row select {
+            flex: 1;
+        }
+
+        /* ── CUSTOM SPLIT ── */
+        #custom-split {
+            display: none;
+        }
+
+        #custom-split.show {
+            display: block;
+        }
+
+        .cs-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .cs-row span {
+            font-size: 8px;
+            min-width: 64px;
+        }
+
+        .cs-row input {
+            flex: 1;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 14px 16px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            cursor: pointer;
+            border: 3px solid;
+            box-shadow: 4px 4px 0 var(--shadow);
+            min-height: 48px;
+        }
+
+        .btn:active {
+            transform: translate(3px, 3px);
+            box-shadow: 1px 1px 0 var(--shadow);
+        }
+
+        .btn-green {
+            background: #e4eee8;
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .btn-blue {
+            background: #dce8f6;
+            border-color: var(--border);
+            color: var(--border);
+        }
+
+        .btn-red {
+            background: #fce8e8;
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .btn-yellow {
+            background: #fef4cc;
+            border-color: var(--yellow);
+            color: var(--yellow);
+        }
+
+        .btn-purple {
+            background: var(--border);
+            border-color: var(--shadow);
+            color: #fdfaf6;
+        }
+
+        .btn-full {
+            width: 100%;
+            display: block;
+            text-align: center;
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 7px;
+            box-shadow: 2px 2px 0 var(--shadow);
+            min-height: 36px;
+        }
+
+        .btn-sm:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        /* ── EXPENSE ITEMS ── */
+        .expense-card {
+            background: var(--panel);
+            border: 2px solid var(--border);
+            border-left: 5px solid var(--border);
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 3px 3px 0 var(--shadow);
+        }
+
+        .exp-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .exp-desc {
+            font-size: 10px;
+            color: var(--bright);
+            flex: 1;
+            word-break: break-all;
+        }
+
+        .exp-amt {
+            font-size: 11px;
+            color: var(--yellow);
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+
+        .exp-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 3px 7px;
+            font-size: 7px;
+            border: 2px solid;
+        }
+
+        .tag-duck {
+            border-color: var(--duck);
+            color: var(--duck);
+            background: #fef4cc;
+        }
+
+        .tag-sansa {
+            border-color: var(--sansa);
+            color: var(--sansa);
+            background: #e4eee8;
+        }
+
+        .tag-huniu {
+            border-color: var(--huniu);
+            color: var(--huniu);
+            background: #dce8f6;
+        }
+
+        .tag-cat {
+            border-color: #94ccb0;
+            color: var(--dim);
+            background: #fdfaf6;
+        }
+
+        .exp-split {
+            font-size: 7px;
+            color: var(--dim);
+            margin-bottom: 6px;
+        }
+
+        .exp-actions {
+            display: flex;
+            justify-content: end;
+            gap: 6px;
+        }
+
+        /* ── SUMMARY BAR ── */
+        .sum-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .sum-chip {
+            flex: 1;
+            padding: 10px 4px;
+            text-align: center;
+            border: 2px solid;
+            background: var(--panel);
+            box-shadow: 2px 2px 0 var(--shadow);
+        }
+
+        .sum-chip.duck {
+            border-color: var(--duck);
+            background: #fef4cc;
+        }
+
+        .sum-chip.sansa {
+            border-color: var(--sansa);
+            background: #e4eee8;
+        }
+
+        .sum-chip.huniu {
+            border-color: var(--huniu);
+            background: #dce8f6;
+        }
+
+        .chip-name {
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+
+        .chip-val {
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        /* ── FILTER BAR ── */
+        .filter-bar {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .flt-btn {
+            padding: 8px 12px;
+            background: var(--panel);
+            border: 2px solid var(--border);
+            color: var(--dim);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            min-height: 36px;
+        }
+
+        .flt-btn.active {
+            background: var(--border);
+            color: #fdfaf6;
+        }
+
+        /* ── SECTION TITLE ── */
+        .sec-title {
+            font-size: 9px;
+            color: var(--border);
+            margin: 14px 0 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sec-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+        }
+
+        /* ── EMPTY STATE ── */
+        .empty {
+            text-align: center;
+            padding: 32px;
+            color: var(--dim);
+            font-size: 12px;
+            line-height: 3;
+        }
+
+        /* ── SETTLEMENT ── */
+        .rate-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .rate-label {
+            font-size: 8px;
+            color: var(--dim);
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .rate-unit {
+            font-size: 8px;
+            color: var(--dim);
+            margin-left: 6px;
+        }
+
+        .bal-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .bal-table th, .bal-table td {
+            padding: 8px 5px;
+            text-align: center;
+            border: 2px solid var(--border);
+            font-size: 8px;
+        }
+
+        .bal-table th {
+            background: #c4e4d4;
+            color: var(--border);
+        }
+
+        .bal-table td {
+            background: var(--panel);
+        }
+
+        .pos {
+            color: var(--green);
+        }
+
+        .neg {
+            color: var(--red);
+        }
+
+        .tx-item {
+            background: #e4eee8;
+            border: 3px solid var(--green);
+            border-left: 6px solid var(--green);
+            padding: 12px;
+            margin-bottom: 8px;
+            box-shadow: 3px 3px 0 var(--shadow);
+        }
+
+        .tx-from {
+            color: var(--red);
+        }
+
+        .tx-to {
+            color: var(--green);
+        }
+
+        .tx-amt {
+            font-size: 12px;
+            color: var(--yellow);
+        }
+
+        .tx-note {
+            font-size: 7px;
+            color: var(--dim);
+            margin-top: 4px;
+        }
+
+        /* ── FOOTER ACTIONS ── */
+        .foot-actions {
+            display: flex;
+            justify-content: end;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 2px solid var(--border);
+        }
+
+        /* ── MODAL ── */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(30, 18, 8, .65);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--panel);
+            border: 4px solid var(--border);
+            box-shadow: 6px 6px 0 var(--shadow);
+            padding: 20px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 12px;
+            color: var(--border);
+            margin-bottom: 14px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: end;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            border: 3px solid var(--bright);
+            box-shadow: 4px 4px 0 var(--shadow);
+            z-index: 200;
+            display: none;
+            white-space: nowrap;
+            color: #fff;
+        }
+
+        /* ── TAB CONTENTS ── */
+        .tab {
+            display: none;
+        }
+
+        .tab.active {
+            display: block;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 0;
+        }
+
+        /* ── MOBILE ── */
+        @media (max-width: 420px) {
+            body {
+                font-size: 9px;
+            }
+
+            .trip-title {
+                font-size: 10px;
+            }
+
+            .tab-btn {
+                font-size: 7px;
+                padding: 10px 1px;
+            }
+
+            .btn {
+                font-size: 8px;
+            }
+
+            .exp-amt {
+                font-size: 10px;
+            }
+        }
+
+        /* ── PIXEL DROPDOWN ── */
+        select.px-init {
+            display: none !important;
+        }
+
+        .px-select {
+            display: block;
+            width: 100%;
+            position: relative;
+        }
+
+        .amount-row .px-select {
+            flex: 1;
+        }
+
+        .px-trigger {
+            width: 100%;
+            padding: 12px 36px 12px 10px;
+            background: #fdfaf6;
+            border: 3px solid var(--border);
+            color: var(--bright);
+            font-family: 'Press Start 2P', monospace;
+            font-size: 10px;
+            min-height: 48px;
+            box-shadow: 3px 3px 0 var(--shadow);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            position: relative;
+            user-select: none;
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+
+        .px-trigger::after {
+            content: '';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 10px;
+            height: 6px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Crect x='0' y='0' width='10' height='2' fill='%231a7050'/%3E%3Crect x='2' y='2' width='6' height='2' fill='%231a7050'/%3E%3Crect x='4' y='4' width='2' height='2' fill='%231a7050'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+        }
+
+        .px-select.px-open .px-trigger {
+            border-color: var(--border);
+            box-shadow: 3px 3px 0 var(--shadow), 0 0 0 3px rgba(26, 112, 80, .15);
+            background-color: #fffef9;
+        }
+
+        .px-drop {
+            position: fixed;
+            background: #fdfaf6;
+            border: 3px solid var(--border);
+            box-shadow: 5px 5px 0 var(--shadow);
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            z-index: 9999;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .px-opt {
+            padding: 11px 14px;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 9px;
+            cursor: pointer;
+            color: var(--text);
+            border-bottom: 2px solid #94ccb0;
+            line-height: 1.6;
+        }
+
+        .px-opt:last-child {
+            border-bottom: none;
+        }
+
+        .px-opt:hover {
+            background: #e4f2ec;
+            color: var(--border);
+        }
+
+        .px-opt.px-sel {
+            background: var(--border);
+            color: #fdfaf6;
+        }
+
+        /* ── SUGGEST CARDS ── */
+        .suggest-card {
+            background: var(--panel);
+            border: 3px solid var(--green);
+            border-left: 6px solid var(--green);
+            padding: 14px 14px 10px;
+            margin-bottom: 8px;
+            box-shadow: 3px 3px 0 var(--shadow);
+        }
+
+        .sg-receiver {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        .sg-label {
+            font-size: 8px;
+            color: var(--dim);
+            padding: 2px 6px;
+            border: 2px solid var(--dim);
+        }
+
+        .sg-payer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+        }
+
+        .sg-amt {
+            font-size: 13px;
+            color: var(--yellow);
+        }
+
+        .sg-amt small {
+            font-size: 8px;
+            color: var(--dim);
+        }
+
+        .rate-notice {
+            font-size: 8px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            border: 2px solid;
+            line-height: 2;
+        }
+
+        .rate-notice.ok {
+            background: #e4eee8;
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .rate-notice.warn {
+            background: #fef4cc;
+            border-color: var(--yellow);
+            color: var(--yellow);
+        }
+
+        /* ── BLINK CURSOR ── */
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- ═══ HEADER ═══ -->
+    <header>
+        <div class="trip-title">▶ USA WEST COAST x 2026 ◀</div>
+        <div class="pixel-chars">
+            <div class="char-portrait">
+                <div class="emoji">🪿</div>
+                <div class="cname" style="color:var(--duck)">duck</div>
+            </div>
+            <div class="char-portrait">
+                <div class="emoji">🥕</div>
+                <div class="cname" style="color:var(--sansa)">33</div>
+            </div>
+            <div class="char-portrait">
+                <div class="emoji">🐯</div>
+                <div class="cname" style="color:var(--huniu)">lin</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══ NAV ═══ -->
+    <nav>
+        <button class="tab-btn active" onclick="gotoTab('add')">記帳</button>
+        <button class="tab-btn" onclick="gotoTab('list')">明細</button>
+        <button class="tab-btn" onclick="gotoTab('settle')">試算</button>
+        <button class="tab-btn" onclick="gotoTab('config')">設定</button>
+    </nav>
+
+    <!-- ════════════════════════════════════
+         TAB: 記帳
+    ════════════════════════════════════ -->
+    <div id="tab-add" class="tab active">
+        <div class="panel">
+            <div class="panel-title">▸ 新增費用</div>
+
+            <div class="form-group">
+                <label>日期</label>
+                <input type="date" id="f-date">
+            </div>
+
+            <div class="form-group">
+                <label>說明</label>
+                <input type="text" id="f-desc" placeholder="...">
+            </div>
+
+            <div class="form-group">
+                <label>分類</label>
+                <select id="f-cat">
+                    <option value="food">🍔 吃飯</option>
+                    <option value="accommodation">🏨 住宿</option>
+                    <option value="flight">✈️ 機票</option>
+                    <option value="car_rental">🚗 租車</option>
+                    <option value="transport">🚌 交通</option>
+                    <option value="entertainment">🎡 娛樂</option>
+                    <option value="shopping">🛍️ 購物</option>
+                    <option value="other">💰 其他</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>付款人</label>
+                <div class="char-selector" id="payer-btns">
+                    <button class="char-btn" id="pay-duck" onclick="setPayer('duck')">🪿<br>duck</button>
+                    <button class="char-btn" id="pay-sansa" onclick="setPayer('sansa')">🥕<br>33</button>
+                    <button class="char-btn" id="pay-huniu" onclick="setPayer('huniu')">🐯<br>lin</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>金額</label>
+                <div class="amount-row">
+                    <select id="f-cur">
+                        <option value="USD">USD $</option>
+                        <option value="TWD">TWD NT$</option>
+                        <option value="CNY">CNY ¥</option>
+                    </select>
+                    <input type="number" id="f-amt" placeholder="0.00" step="0.01" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>分帳對象</label>
+                <div class="split-row">
+                    <div class="split-tile on-duck" id="sp-duck" onclick="toggleSplit('duck')">🪿<br>duck</div>
+                    <div class="split-tile on-sansa" id="sp-sansa" onclick="toggleSplit('sansa')">🥕<br>33</div>
+                    <div class="split-tile on-huniu" id="sp-huniu" onclick="toggleSplit('huniu')">🐯<br>lin</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>分帳方式</label>
+                <select id="f-split-type" onchange="onSplitTypeChange()">
+                    <option value="equal">平均分攤</option>
+                    <option value="custom">自訂金額</option>
+                </select>
+            </div>
+
+            <div id="custom-split">
+                <label>各人分攤金額（幣種同上）</label>
+                <div class="cs-row">
+                    <span style="color:var(--duck)">🪿 duck</span>
+                    <input type="number" id="cs-duck" placeholder="0" step="0.01" min="0">
+                </div>
+                <div class="cs-row">
+                    <span style="color:var(--sansa)">🥕 33</span>
+                    <input type="number" id="cs-sansa" placeholder="0" step="0.01" min="0">
+                </div>
+                <div class="cs-row">
+                    <span style="color:var(--huniu)">🐯 lin</span>
+                    <input type="number" id="cs-huniu" placeholder="0" step="0.01" min="0">
+                </div>
+                <div id="cs-hint" style="font-size:7px;color:var(--dim);margin-bottom:10px">小計: <span id="cs-total">0.00</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>備註（選填）</label>
+                <input type="text" id="f-notes" placeholder="...">
+            </div>
+
+            <button class="btn btn-green btn-full" onclick="addExpense()">▶ 存檔</button>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         TAB: 明細
+    ════════════════════════════════════ -->
+    <div id="tab-list" class="tab">
+        <div class="sum-bar" id="sum-bar"></div>
+
+        <div class="filter-bar">
+            <button class="flt-btn active" onclick="setFilter('all',this)">ALL</button>
+            <button class="flt-btn" onclick="setFilter('duck',this)">🪿duck</button>
+            <button class="flt-btn" onclick="setFilter('sansa',this)">🥕33</button>
+            <button class="flt-btn" onclick="setFilter('huniu',this)">🐯lin</button>
+        </div>
+
+        <div id="expense-list"></div>
+
+        <div class="foot-actions">
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         TAB: 結算
+    ════════════════════════════════════ -->
+    <div id="tab-settle" class="tab">
+        <div id="settle-live"></div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         TAB: 設定
+    ════════════════════════════════════ -->
+    <div id="tab-config" class="tab">
+        <div class="panel">
+            <div class="panel-title">▸ 匯率設定（USD 為基準）</div>
+            <div class="rate-row">
+                <span class="rate-label">1 TWD =</span>
+                <input type="number" id="rate-twd" placeholder="0.0308" step="0.0001" min="0" style="max-width:140px">
+                <span class="rate-unit">USD</span>
+            </div>
+            <div class="rate-row">
+                <span class="rate-label">1 CNY =</span>
+                <input type="number" id="rate-cny" placeholder="0.1380" step="0.0001" min="0" style="max-width:140px">
+                <span class="rate-unit">USD</span>
+            </div>
+            <button class="btn btn-purple btn-full" onclick="saveRates()">▶ 儲存匯率</button>
+        </div>
+
+        <div class="panel">
+            <div class="panel-title">▸ Data Setting</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn btn-green btn-sm" onclick="syncToSheets()">▶ PUSH</button>
+                <button class="btn btn-yellow btn-sm" onclick="pullFromSheets()">◀ PULL</button>
+            </div>
+            <div id="gs-status" style="font-size:8px;color:var(--dim);margin-top:10px;line-height:2"></div>
+        </div>
+    </div>
+
+</div><!-- #app -->
+
+<!-- ═══ EDIT MODAL ═══ -->
+<div class="overlay" id="edit-overlay" onclick="maybeCloseModal(event)">
+    <div class="modal">
+        <div class="modal-title">▸ 編輯費用</div>
+        <div id="edit-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-red" onclick="closeModal()">取消</button>
+            <button class="btn btn-green" onclick="saveEdit()">儲存</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ TOAST ═══ -->
+<div id="toast"></div>
+
+<script>
+    /* ══════════════════════════════════════════════════════
+       CONSTANTS
+    ══════════════════════════════════════════════════════ */
+    const MEMBERS = [
+        {id: 'duck', name: 'duck', emoji: '🪿', home: 'TWD', color: '#8a6000'},
+        {id: 'sansa', name: '33', emoji: '🥕', home: 'CNY', color: '#14603e'},
+        {id: 'huniu', name: 'lin', emoji: '🐯', home: 'CNY', color: '#1858a8'},
+    ];
+    const CATS = {
+        food: '🍔 餐飲', accommodation: '🏨 住宿', flight: '✈️ 機票',
+        car_rental: '🚗 租車', transport: '🚌 交通', entertainment: '🎡 娛樂',
+        shopping: '🛍️ 購物', other: '💰 其他',
+    };
+    const CUR_SYM = {USD: '$', TWD: 'NT$', CNY: '¥'};
+    const STORAGE_KEY = 'splitBill_2026';
+    const GS_URL   = 'https://script.google.com/macros/s/AKfycbzcVa8wQVKcSEbP-EQdfYQ2JAIlPqg4uhBilYN8gI0PUnXk4cDcQGeNx-NnSshIQeqU4g/exec';
+    const GS_SHEET = 'record';
+
+    /* ══════════════════════════════════════════════════════
+       STATE
+    ══════════════════════════════════════════════════════ */
+    let S = {
+        expenses: [],
+        rates: {TWD_USD: null, CNY_USD: null, updatedAt: null},
+        gs: {lastSyncAt: null},
+    };
+
+    /* form temp state */
+    let fPayer = 'duck';
+    let fSplit = {duck: true, sansa: true, huniu: true};
+    let filter = 'all';
+    let editId = null;
+    /* modal temp state */
+    let mPayer = 'duck';
+    let mSplit = {duck: true, sansa: true, huniu: true};
+
+    /* ══════════════════════════════════════════════════════
+       STORAGE
+    ══════════════════════════════════════════════════════ */
+    function save() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+        } catch (e) {
+            toast('⚠ 儲存失敗', 'err');
+        }
+    }
+
+    function load() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) S = {...S, ...JSON.parse(raw)};
+        } catch (e) {
+            console.warn('load failed', e);
+        }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       FORM: ADD EXPENSE
+    ══════════════════════════════════════════════════════ */
+    function setPayer(id) {
+        fPayer = id;
+        MEMBERS.forEach(m => {
+            const btn = document.getElementById('pay-' + m.id);
+            btn.className = 'char-btn' + (m.id === id ? ' sel-' + id : '');
+        });
+    }
+
+    function toggleSplit(id) {
+        fSplit[id] = !fSplit[id];
+        if (!Object.values(fSplit).some(Boolean)) fSplit[id] = true;
+        renderSplitTiles('sp-', fSplit);
+    }
+
+    function renderSplitTiles(prefix, state) {
+        MEMBERS.forEach(m => {
+            const el = document.getElementById(prefix + m.id);
+            if (!el) return;
+            el.className = 'split-tile ' + (state[m.id] ? 'on-' + m.id : '');
+        });
+    }
+
+    function onSplitTypeChange() {
+        const cs = document.getElementById('custom-split');
+        cs.className = document.getElementById('f-split-type').value === 'custom' ? 'show' : '';
+    }
+
+    /* live total for custom split */
+    ['cs-duck', 'cs-sansa', 'cs-huniu'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updateCsTotal);
+    });
+
+    function updateCsTotal() {
+        const tot = ['cs-duck', 'cs-sansa', 'cs-huniu']
+            .reduce((s, id) => s + (parseFloat(document.getElementById(id)?.value) || 0), 0);
+        const el = document.getElementById('cs-total');
+        if (el) el.textContent = tot.toFixed(2);
+    }
+
+    function addExpense() {
+        const desc = document.getElementById('f-desc').value.trim();
+        const date = document.getElementById('f-date').value;
+        const cat = document.getElementById('f-cat').value;
+        const amt = parseFloat(document.getElementById('f-amt').value);
+        const cur = document.getElementById('f-cur').value;
+        const type = document.getElementById('f-split-type').value;
+        const notes = document.getElementById('f-notes').value.trim();
+        const among = MEMBERS.map(m => m.id).filter(id => fSplit[id]);
+
+        if (!desc) {
+            toast('請輸入說明');
+            return;
+        }
+        if (!date) {
+            toast('請選擇日期');
+            return;
+        }
+        if (!amt || amt <= 0) {
+            toast('請輸入有效金額');
+            return;
+        }
+        if (!among.length) {
+            toast('請選擇分帳對象');
+            return;
+        }
+
+        let custom = null;
+        if (type === 'custom') {
+            custom = {};
+            let tot = 0;
+            for (const id of among) {
+                const v = parseFloat(document.getElementById('cs-' + id)?.value) || 0;
+                custom[id] = v;
+                tot += v;
+            }
+            if (Math.abs(tot - amt) > 0.02) {
+                toast(`自訂合計 ${tot.toFixed(2)} ≠ ${amt.toFixed(2)}`);
+                return;
+            }
+        }
+
+        const expense = {
+            id: uid(),
+            date, desc, cat,
+            paidBy: fPayer,
+            cur, amt,
+            among,
+            splitType: type,
+            custom,
+            notes,
+            // ── reserved for Google Sheets ──
+            gsRowId: null,
+            gsSyncedAt: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        S.expenses.push(expense);
+        sortExpenses();
+        save();
+        resetForm();
+        toast('✓ 已儲存', 'ok');
+        gotoTab('list');
+        syncToSheets();
+    }
+
+    function resetForm() {
+        document.getElementById('f-desc').value = '';
+        document.getElementById('f-amt').value = '';
+        document.getElementById('f-notes').value = '';
+        document.getElementById('f-cat').value = 'food';
+        document.getElementById('f-split-type').value = 'equal';
+        document.getElementById('custom-split').className = '';
+        ['cs-duck', 'cs-sansa', 'cs-huniu'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        fPayer = 'duck';
+        fSplit = {duck: true, sansa: true, huniu: true};
+        setPayer('duck');
+        renderSplitTiles('sp-', fSplit);
+        syncPixelSelect('f-cat');
+        syncPixelSelect('f-split-type');
+        syncPixelSelect('f-cur');
+    }
+
+    /* ══════════════════════════════════════════════════════
+       RENDER: EXPENSE LIST
+    ══════════════════════════════════════════════════════ */
+    function renderList() {
+        renderSummaryBar();
+
+        const filtered = filter === 'all'
+            ? S.expenses
+            : S.expenses.filter(e => e.paidBy === filter);
+
+        const el = document.getElementById('expense-list');
+        if (!filtered.length) {
+            el.innerHTML = S.expenses.length === 0
+                ? `<div class="empty">▶ 還沒有費用記錄<br>點「記帳」開始輸入！</div>`
+                : `<div class="empty">no-data</div>`;
+            return;
+        }
+
+        /* group by date */
+        const byDate = {};
+        filtered.forEach(e => {
+            if (!byDate[e.date]) byDate[e.date] = [];
+            byDate[e.date].push(e);
+        });
+
+        el.innerHTML = Object.entries(byDate)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, exps]) =>
+                `<div class="sec-title">${fmtDate(date)}</div>` +
+                exps.map(renderCard).join('')
+            ).join('');
+    }
+
+    function renderSummaryBar() {
+        const totals = {};
+        MEMBERS.forEach(m => totals[m.id] = {});
+        S.expenses.forEach(e => {
+            if (!totals[e.paidBy][e.cur]) totals[e.paidBy][e.cur] = 0;
+            totals[e.paidBy][e.cur] += e.amt;
+        });
+
+        document.getElementById('sum-bar').innerHTML = MEMBERS.map(m => {
+            const rows = Object.entries(totals[m.id])
+                .map(([c, v]) => `${CUR_SYM[c]}${v.toLocaleString('en', {maximumFractionDigits: 0})}`)
+                .join('<br>') || '—';
+            return `<div class="sum-chip ${m.id}">
+      <div class="chip-name" style="color:${m.color}">${m.emoji} ${m.name}</div>
+      <div class="chip-val"  style="color:${m.color}">${rows}</div>
+    </div>`;
+        }).join('');
+    }
+
+    function renderCard(e) {
+        const payer = MEMBERS.find(m => m.id === e.paidBy);
+        const tags = e.among.map(id => {
+            const m = MEMBERS.find(m => m.id === id);
+            return `<span class="tag tag-${id}">${m.emoji}${m.name}</span>`;
+        }).join('');
+
+        return `<div class="expense-card">
+    <div class="exp-top">
+      <div class="exp-desc">${esc(e.desc)}</div>
+      <div class="exp-amt">${fmtAmt(e.amt, e.cur)}</div>
+    </div>
+    <div class="exp-meta">
+      <span class="tag tag-${e.paidBy}">${payer.emoji}${payer.name} 付</span>
+      <span class="tag tag-cat">${CATS[e.cat] || e.cat}</span>
+      ${e.notes ? `<span class="tag tag-cat">📝 ${esc(e.notes)}</span>` : ''}
+    </div>
+    <div class="exp-split">分帳: ${tags} &nbsp;${e.splitType === 'custom' ? '(自訂)' : '(平均)'}</div>
+    <div class="exp-actions">
+      <button class="btn btn-blue btn-sm"  onclick="openEdit('${e.id}')">編輯</button>
+      <button class="btn btn-red  btn-sm"  onclick="delExpense('${e.id}')">刪除</button>
+    </div>
+  </div>`;
+    }
+
+    function delExpense(id) {
+        if (!confirm('確定要刪除這筆費用？')) return;
+        S.expenses = S.expenses.filter(e => e.id !== id);
+        save();
+        renderList();
+        toast('✓ 已刪除', 'ok');
+    }
+
+    function setFilter(f, btn) {
+        filter = f;
+        document.querySelectorAll('.flt-btn').forEach(b => b.className = 'flt-btn');
+        btn.className = 'flt-btn active';
+        renderList();
+    }
+
+    /* ══════════════════════════════════════════════════════
+       EDIT MODAL
+    ══════════════════════════════════════════════════════ */
+    function openEdit(id) {
+        const e = S.expenses.find(e => e.id === id);
+        if (!e) return;
+        editId = id;
+        mPayer = e.paidBy;
+        mSplit = {duck: false, sansa: false, huniu: false};
+        e.among.forEach(x => mSplit[x] = true);
+
+        const catOpts = Object.entries(CATS).map(([k, v]) =>
+            `<option value="${k}" ${e.cat === k ? 'selected' : ''}>${v}</option>`
+        ).join('');
+
+        const payerBtns = MEMBERS.map(m =>
+            `<button class="char-btn ${e.paidBy === m.id ? 'sel-' + m.id : ''}"
+      id="mpay-${m.id}" onclick="setMPayer('${m.id}')">${m.emoji}<br>${m.name}</button>`
+        ).join('');
+
+        const splitTiles = MEMBERS.map(m =>
+            `<div class="split-tile ${e.among.includes(m.id) ? 'on-' + m.id : ''}"
+      id="msp-${m.id}" onclick="toggleMSplit('${m.id}')">${m.emoji}<br>${m.name}</div>`
+        ).join('');
+
+        document.getElementById('edit-body').innerHTML = `
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="ef-date" value="${e.date}">
+    </div>
+    <div class="form-group">
+      <label>說明</label>
+      <input type="text" id="ef-desc" value="${esc(e.desc)}">
+    </div>
+    <div class="form-group">
+      <label>分類</label>
+      <select id="ef-cat">${catOpts}</select>
+    </div>
+    <div class="form-group">
+      <label>付款人</label>
+      <div class="char-selector">${payerBtns}</div>
+    </div>
+    <div class="form-group">
+      <label>金額</label>
+      <div class="amount-row">
+        <select id="ef-cur">
+          ${['USD', 'TWD', 'CNY'].map(c => `<option value="${c}" ${e.cur === c ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+        <input type="number" id="ef-amt" value="${e.amt}" step="0.01" min="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>分帳對象</label>
+      <div class="split-row">${splitTiles}</div>
+    </div>
+    <div class="form-group">
+      <label>備註</label>
+      <input type="text" id="ef-notes" value="${esc(e.notes || '')}">
+    </div>
+  `;
+        initPixelDropdowns(document.getElementById('edit-body'));
+        document.getElementById('edit-overlay').className = 'overlay open';
+    }
+
+    function setMPayer(id) {
+        mPayer = id;
+        MEMBERS.forEach(m => {
+            const btn = document.getElementById('mpay-' + m.id);
+            if (btn) btn.className = 'char-btn' + (m.id === id ? ' sel-' + id : '');
+        });
+    }
+
+    function toggleMSplit(id) {
+        mSplit[id] = !mSplit[id];
+        if (!Object.values(mSplit).some(Boolean)) mSplit[id] = true;
+        renderSplitTiles('msp-', mSplit);
+    }
+
+    function saveEdit() {
+        const desc = document.getElementById('ef-desc').value.trim();
+        const date = document.getElementById('ef-date').value;
+        const amt = parseFloat(document.getElementById('ef-amt').value);
+        const among = MEMBERS.map(m => m.id).filter(id => mSplit[id]);
+
+        if (!desc || !date || !amt || !among.length) {
+            toast('請填寫所有必填欄位');
+            return;
+        }
+
+        const idx = S.expenses.findIndex(e => e.id === editId);
+        if (idx < 0) return;
+
+        S.expenses[idx] = {
+            ...S.expenses[idx],
+            date, desc, among,
+            cat: document.getElementById('ef-cat').value,
+            paidBy: mPayer,
+            amt,
+            cur: document.getElementById('ef-cur').value,
+            notes: document.getElementById('ef-notes').value.trim(),
+            updatedAt: new Date().toISOString(),
+            // preserve Google Sheets fields
+        };
+        sortExpenses();
+        save();
+        closeModal();
+        renderList();
+        toast('✓ 已更新', 'ok');
+        syncToSheets();
+    }
+
+    function closeModal() {
+        document.getElementById('edit-overlay').className = 'overlay';
+        editId = null;
+    }
+
+    function maybeCloseModal(e) {
+        if (e.target === document.getElementById('edit-overlay')) closeModal();
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SETTLEMENT
+    ══════════════════════════════════════════════════════ */
+    function saveRates() {
+        const twdRate = parseFloat(document.getElementById('rate-twd').value);
+        const cnyRate = parseFloat(document.getElementById('rate-cny').value);
+        if (!twdRate || twdRate <= 0) {
+            toast('請輸入 TWD 匯率');
+            return;
+        }
+        if (!cnyRate || cnyRate <= 0) {
+            toast('請輸入 CNY 匯率');
+            return;
+        }
+        S.rates = {TWD_USD: twdRate, CNY_USD: cnyRate, updatedAt: new Date().toISOString()};
+        save();
+        toast('✓ 匯率已儲存', 'ok');
+    }
+
+    function renderSettle() {
+        const twdRate = S.rates?.TWD_USD || 0;
+        const cnyRate = S.rates?.CNY_USD || 0;
+        const hasRates = twdRate > 0 && cnyRate > 0;
+
+        const toUSD = (amt, cur) => {
+            if (cur === 'USD') return amt;
+            if (cur === 'TWD') return hasRates ? amt * twdRate : 0;
+            if (cur === 'CNY') return hasRates ? amt * cnyRate : 0;
+            return amt;
+        };
+
+        const paid = {}, owed = {}, bal = {};
+        MEMBERS.forEach(m => {
+            paid[m.id] = 0;
+            owed[m.id] = 0;
+            bal[m.id] = 0;
+        });
+
+        S.expenses.forEach(e => {
+            const usd = toUSD(e.amt, e.cur);
+            paid[e.paidBy] += usd;
+            bal[e.paidBy] += usd;
+            if (e.splitType === 'custom' && e.custom) {
+                e.among.forEach(id => {
+                    const share = toUSD(e.custom[id] || 0, e.cur);
+                    owed[id] += share;
+                    bal[id] -= share;
+                });
+            } else {
+                const share = usd / e.among.length;
+                e.among.forEach(id => {
+                    owed[id] += share;
+                    bal[id] -= share;
+                });
+            }
+        });
+
+        const txs = minimizeTx({...bal});
+        let html = '';
+
+        /* rate status notice */
+        html += hasRates
+            ? `<div class="rate-notice ok">✓ 匯率：1 TWD = ${twdRate} USD　1 CNY = ${cnyRate} USD</div>`
+            : `<div class="rate-notice warn">⚠ 未設定匯率，TWD/CNY 費用暫不計入<br>請至「設定」頁輸入匯率後儲存</div>`;
+
+        /* suggestion cards */
+        if (S.expenses.length === 0) {
+            html += `<div class="empty">▶ 還沒有費用記錄<br>點「記帳」開始輸入！</div>`;
+        } else if (txs.length === 0) {
+            html += `<div class="empty">✓ 完全平衡！不需要轉帳</div>`;
+        } else {
+            html += `<div class="sec-title">即時分帳建議</div>`;
+            txs.forEach(tx => {
+                const fm = MEMBERS.find(m => m.id === tx.from);
+                const tm = MEMBERS.find(m => m.id === tx.to);
+                const homeRate = fm.home === 'TWD' && twdRate > 0 ? 1 / twdRate
+                    : fm.home === 'CNY' && cnyRate > 0 ? 1 / cnyRate : 0;
+                const homeAmt = homeRate > 0
+                    ? (tx.amt * homeRate).toFixed(fm.home === 'USD' ? 2 : 0) : null;
+
+                html += `<div class="suggest-card">
+                    <div class="sg-receiver">
+                        <span style="color:${tm.color}">${tm.emoji} ${tm.name}</span>
+                        <span class="sg-label">應收</span>
+                    </div>
+                    <div class="sg-payer">
+                        <span style="color:${fm.color}">${fm.emoji} ${fm.name}</span>
+                        <span class="sg-amt">$${tx.amt.toFixed(2)} <small>USD</small></span>
+                    </div>
+                    ${homeAmt ? `<div class="tx-note" style="margin-top:6px">≈ ${CUR_SYM[fm.home]}${homeAmt} ${fm.home}（${fm.name} 視角）</div>` : ''}
+                </div>`;
+            });
+        }
+
+        /* balance overview */
+        if (S.expenses.length > 0) {
+            html += `<div class="sec-title">花費總覽</div>
+            <div class="panel" style="padding:0;overflow-x:auto">
+              <table class="bal-table">
+                <thead><tr>
+                  <th>成員</th><th>已付</th><th>應付</th><th>淨額</th>
+                </tr></thead>
+                <tbody>
+                  ${MEMBERS.map(m => {
+                const b = bal[m.id];
+                return `<tr>
+                      <td style="color:${m.color}">${m.emoji} ${m.name}</td>
+                      <td>$${paid[m.id].toFixed(2)}</td>
+                      <td>$${owed[m.id].toFixed(2)}</td>
+                      <td class="${b >= 0 ? 'pos' : 'neg'}">${b >= 0 ? '+' : ''}$${b.toFixed(2)}</td>
+                    </tr>`;
+            }).join('')}
+                </tbody>
+              </table>
+            </div>`;
+
+            if (hasRates) {
+                html += `<button class="btn btn-blue btn-full" onclick="exportReport()" style="margin-top:12px">匯出結算報告 TXT</button>`;
+            }
+        }
+
+        document.getElementById('settle-live').innerHTML = html;
+    }
+
+    function minimizeTx(bal) {
+        const txs = [], eps = 0.005;
+        for (let i = 0; i < 100; i++) {
+            let maxC = null, maxD = null, maxV = -Infinity, minV = Infinity;
+            for (const [id, b] of Object.entries(bal)) {
+                if (b > eps && b > maxV) {
+                    maxV = b;
+                    maxC = id;
+                }
+                if (b < -eps && b < minV) {
+                    minV = b;
+                    maxD = id;
+                }
+            }
+            if (!maxC || !maxD) break;
+            const amt = Math.min(maxV, -minV);
+            txs.push({from: maxD, to: maxC, amt});
+            bal[maxC] -= amt;
+            bal[maxD] += amt;
+        }
+        return txs;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       EXPORT / IMPORT
+    ══════════════════════════════════════════════════════ */
+    function exportJSON() {
+        const blob = new Blob([JSON.stringify(S, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+            href: url,
+            download: `美西分帳_${today()}.json`,
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('✓ 已匯出 JSON', 'ok');
+    }
+
+    function triggerImport() {
+        document.getElementById('import-file').click();
+    }
+
+    function importJSON(evt) {
+        const file = evt.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (!Array.isArray(data.expenses)) throw new Error('invalid');
+                if (!confirm(`匯入 ${data.expenses.length} 筆費用？（將覆蓋現有資料）`)) return;
+                S = {...S, ...data};
+                save();
+                renderList();
+                toast('✓ 匯入成功', 'ok');
+                gotoTab('list');
+            } catch {
+                toast('❌ 匯入失敗：格式錯誤', 'err');
+            }
+        };
+        reader.readAsText(file);
+        evt.target.value = '';
+    }
+
+    function exportReport() {
+        const {TWD_USD: twd, CNY_USD: cny} = S.rates;
+        if (!twd || !cny) {
+            toast('請先計算結算！');
+            return;
+        }
+
+        let out = `美西之旅 2026 分帳報告\n`;
+        out += `生成時間：${new Date().toLocaleString('zh-TW')}\n`;
+        out += `匯率：1 TWD = ${twd} USD　1 CNY = ${cny} USD\n`;
+        out += `${'─'.repeat(60)}\n\n`;
+        out += `【費用明細】\n`;
+        S.expenses.forEach(e => {
+            const payer = MEMBERS.find(m => m.id === e.paidBy).name;
+            const among = e.among.map(id => MEMBERS.find(m => m.id === id).name).join('、');
+            out += `${e.date}  ${e.desc.padEnd(16)}  ${fmtAmt(e.amt, e.cur).padStart(12)}  付:${payer}  分:${among}\n`;
+        });
+        out += `\n${'─'.repeat(60)}\n`;
+        out += `【結算結果】（匯率：TWD ${twd} / CNY ${cny}）\n`;
+
+        const toUSD = (a, c) => c === 'USD' ? a : c === 'TWD' ? a * twd : c === 'CNY' ? a * cny : a;
+        const paid = {}, owed = {}, bal = {};
+        MEMBERS.forEach(m => {
+            paid[m.id] = 0;
+            owed[m.id] = 0;
+            bal[m.id] = 0;
+        });
+        S.expenses.forEach(e => {
+            const u = toUSD(e.amt, e.cur);
+            paid[e.paidBy] += u;
+            bal[e.paidBy] += u;
+            const sh = e.splitType === 'custom' && e.custom
+                ? e.among.map(id => ({id, v: toUSD(e.custom[id] || 0, e.cur)}))
+                : e.among.map(id => ({id, v: u / e.among.length}));
+            sh.forEach(({id, v}) => {
+                owed[id] += v;
+                bal[id] -= v;
+            });
+        });
+        MEMBERS.forEach(m => {
+            const b = bal[m.id];
+            out += `${m.name}：付出 $${paid[m.id].toFixed(2)}  應付 $${owed[m.id].toFixed(2)}  淨額 ${b >= 0 ? '+' : ''}$${b.toFixed(2)}\n`;
+        });
+        out += `\n`;
+        minimizeTx({...bal}).forEach(tx => {
+            const fm = MEMBERS.find(m => m.id === tx.from).name;
+            const tm = MEMBERS.find(m => m.id === tx.to).name;
+            out += `${fm} → ${tm}：$${tx.amt.toFixed(2)} USD\n`;
+        });
+
+        const blob = new Blob([out], {type: 'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), {
+            href: url, download: `美西分帳報告_${today()}.txt`,
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       GOOGLE SHEETS CONFIG
+    ══════════════════════════════════════════════════════ */
+    function updateGsStatus() {
+        const el = document.getElementById('gs-status');
+        if (!el) return;
+        const synced = S.expenses.filter(e => e.gsSyncedAt).length;
+        const total  = S.expenses.length;
+        const lastAt = S.gs.lastSyncAt
+            ? new Date(S.gs.lastSyncAt).toLocaleString('zh-TW')
+            : '從未同步';
+        el.textContent = `已同步 ${synced}/${total} 筆　上次：${lastAt}`;
+    }
+
+    async function syncToSheets() {
+        try {
+            const resp = await fetch(GS_URL, {
+                method: 'POST',
+                headers: {'Content-Type': 'text/plain'},
+                body: JSON.stringify({action: 'push', sheet: GS_SHEET, expenses: S.expenses}),
+            });
+            const data = await resp.json();
+            if (!data.ok) throw new Error(data.error || 'push failed');
+            data.updated.forEach(({id, gsRowId, gsSyncedAt}) => {
+                const exp = S.expenses.find(e => e.id === id);
+                if (exp) { exp.gsRowId = gsRowId; exp.gsSyncedAt = gsSyncedAt; }
+            });
+            S.gs.lastSyncAt = data.syncedAt;
+            save();
+            updateGsStatus();
+            toast(`✓ 已同步 ${data.updated.length} 筆`, 'ok');
+        } catch (err) {
+            toast('⚠ 同步失敗：' + err.message, 'err');
+        }
+    }
+
+    async function pullFromSheets(silent) {
+        if (!silent) toast('拉取中…', 'warn');
+        try {
+            const url  = GS_URL + '?action=pull&sheet=' + encodeURIComponent(GS_SHEET);
+            const resp = await fetch(url);
+            const data = await resp.json();
+            if (!data.expenses) throw new Error(data.error || 'pull failed');
+            const sheetIds  = new Set(data.expenses.map(e => e.id));
+            const localOnly = S.expenses.filter(e => !sheetIds.has(e.id) && !e.gsRowId);
+            S.expenses = [...data.expenses, ...localOnly];
+            sortExpenses();
+            S.gs.lastSyncAt = new Date().toISOString();
+            save();
+            updateGsStatus();
+            renderList();
+            if (!silent) toast(`✓ 已拉取 ${data.expenses.length} 筆`, 'ok');
+        } catch (err) {
+            if (!silent) toast('⚠ 拉取失敗：' + err.message, 'err');
+        }
+    }
+
+    function clearAll() {
+        if (!confirm('確定清除所有費用資料？此操作無法復原！')) return;
+        S.expenses = [];
+        S.rates = {TWD_USD: null, CNY_USD: null, updatedAt: null};
+        save();
+        renderList();
+        toast('✓ 已清除', 'ok');
+        gotoTab('list');
+    }
+
+    /* ══════════════════════════════════════════════════════
+       TAB NAVIGATION
+    ══════════════════════════════════════════════════════ */
+    function gotoTab(name) {
+        document.querySelectorAll('.tab').forEach(el => el.className = 'tab');
+        document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn');
+
+        document.getElementById('tab-' + name).className = 'tab active';
+        const order = ['add', 'list', 'settle', 'config'];
+        const i = order.indexOf(name);
+        if (i >= 0) document.querySelectorAll('.tab-btn')[i].className = 'tab-btn active';
+
+        if (name === 'list')   renderList();
+        if (name === 'settle') renderSettle();
+        if (name === 'config') updateGsStatus();
+    }
+
+    /* ══════════════════════════════════════════════════════
+       UTILITIES
+    ══════════════════════════════════════════════════════ */
+    function uid() {
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    function sortExpenses() {
+        S.expenses.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt.localeCompare(b.createdAt));
+    }
+
+    function fmtDate(str) {
+        const d = new Date(str + 'T12:00:00');
+        const wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+        return `${d.getMonth() + 1}/${d.getDate()} (${wd})`;
+    }
+
+    function fmtAmt(amt, cur) {
+        const sym = CUR_SYM[cur] || cur;
+        return `${sym}${amt.toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    }
+
+    function esc(s = '') {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function today() {
+        return new Date().toISOString().slice(0, 10);
+    }
+
+    let _toastTimer;
+
+    function toast(msg, type = 'info') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.background = type === 'ok' ? '#14603e' : type === 'err' ? '#8c2e26' : '#8a6000';
+        el.style.display = 'block';
+        clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => el.style.display = 'none', 2400);
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PIXEL DROPDOWN
+    ══════════════════════════════════════════════════════ */
+    let _activeDrop = null;
+
+    function closeActiveDrop() {
+        if (_activeDrop) {
+            _activeDrop.remove();
+            _activeDrop = null;
+        }
+        document.querySelectorAll('.px-select.px-open').forEach(el => el.classList.remove('px-open'));
+    }
+
+    function syncPixelSelect(id) {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const opt = sel.options[sel.selectedIndex];
+        const trigger = sel.closest('.px-select')?.querySelector('.px-trigger');
+        if (trigger && opt) trigger.textContent = opt.text;
+    }
+
+    function initPixelDropdowns(root) {
+        (root || document).querySelectorAll('select:not(.px-init)').forEach(sel => {
+            sel.classList.add('px-init');
+            const wrap = document.createElement('div');
+            wrap.className = 'px-select';
+            sel.parentNode.insertBefore(wrap, sel);
+            wrap.appendChild(sel);
+
+            const trigger = document.createElement('div');
+            trigger.className = 'px-trigger';
+            trigger.tabIndex = 0;
+            wrap.appendChild(trigger);
+
+            function updateLabel() {
+                const opt = sel.options[sel.selectedIndex];
+                trigger.textContent = opt ? opt.text : '';
+            }
+
+            updateLabel();
+
+            trigger.addEventListener('click', e => {
+                e.stopPropagation();
+                if (wrap.classList.contains('px-open')) {
+                    closeActiveDrop();
+                    return;
+                }
+                closeActiveDrop();
+                const rect = trigger.getBoundingClientRect();
+                const ul = document.createElement('ul');
+                ul.className = 'px-drop';
+                const dropH = Math.min(sel.options.length * 44, 240);
+                const spaceBelow = window.innerHeight - rect.bottom;
+                ul.style.top = (spaceBelow < dropH && rect.top > dropH)
+                    ? (rect.top - dropH) + 'px'
+                    : rect.bottom + 'px';
+                ul.style.left = rect.left + 'px';
+                ul.style.width = rect.width + 'px';
+                Array.from(sel.options).forEach(opt => {
+                    const li = document.createElement('li');
+                    li.className = 'px-opt' + (opt.value === sel.value ? ' px-sel' : '');
+                    li.textContent = opt.text;
+                    li.addEventListener('click', ev => {
+                        ev.stopPropagation();
+                        sel.value = opt.value;
+                        updateLabel();
+                        closeActiveDrop();
+                        sel.dispatchEvent(new Event('change', {bubbles: true}));
+                    });
+                    ul.appendChild(li);
+                });
+                document.body.appendChild(ul);
+                _activeDrop = ul;
+                wrap.classList.add('px-open');
+            });
+
+            trigger.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    trigger.click();
+                }
+                if (e.key === 'Escape') closeActiveDrop();
+            });
+        });
+    }
+
+    document.addEventListener('click', closeActiveDrop);
+    window.addEventListener('scroll', closeActiveDrop, {passive: true});
+
+    /* ══════════════════════════════════════════════════════
+       INIT
+    ══════════════════════════════════════════════════════ */
+    (function init() {
+        load();
+
+        document.getElementById('f-date').value = today();
+
+        /* restore payer + split UI */
+        setPayer('duck');
+        renderSplitTiles('sp-', fSplit);
+
+        /* restore rates */
+        if (S.rates) {
+            if (S.rates.TWD_USD) document.getElementById('rate-twd').value = S.rates.TWD_USD;
+            if (S.rates.CNY_USD) document.getElementById('rate-cny').value = S.rates.CNY_USD;
+        }
+
+        /* live custom-split total */
+        ['cs-duck', 'cs-sansa', 'cs-huniu'].forEach(id => {
+            document.getElementById(id).addEventListener('input', updateCsTotal);
+        });
+
+        initPixelDropdowns();
+        updateGsStatus();
+        pullFromSheets(true); // silent background pull on load
+    })();
+</script>
+</body>
+</html>
