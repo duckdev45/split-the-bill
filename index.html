@@ -1114,12 +1114,12 @@
             <div class="panel-title">▸ 匯率設定（USD 為基準）</div>
             <div class="rate-row">
                 <span class="rate-label">1 TWD =</span>
-                <input type="number" id="rate-twd" placeholder="0.0308" step="0.0001" min="0" style="max-width:140px">
+                <input type="number" id="rate-twd" placeholder="0.032" step="0.0001" min="0" style="max-width:140px">
                 <span class="rate-unit">USD</span>
             </div>
             <div class="rate-row">
                 <span class="rate-label">1 CNY =</span>
-                <input type="number" id="rate-cny" placeholder="0.1380" step="0.0001" min="0" style="max-width:140px">
+                <input type="number" id="rate-cny" placeholder="0.15" step="0.0001" min="0" style="max-width:140px">
                 <span class="rate-unit">USD</span>
             </div>
             <button class="btn btn-purple btn-full" onclick="saveRates()">▶ 儲存匯率</button>
@@ -1890,9 +1890,18 @@
             const resp = await fetch(url);
             const data = await resp.json();
             if (!data.expenses) throw new Error(data.error || 'pull failed');
-            const sheetIds  = new Set(data.expenses.map(e => e.id));
-            const localOnly = S.expenses.filter(e => !sheetIds.has(e.id) && !e.gsRowId);
-            S.expenses = [...data.expenses, ...localOnly];
+            const localMap = {};
+            S.expenses.forEach(e => { localMap[e.id] = e; });
+            const sheetIds = new Set(data.expenses.map(e => e.id));
+            const merged = data.expenses.map(sheetExp => {
+                const local = localMap[sheetExp.id];
+                if (!local) return sheetExp;
+                const sheetTime = new Date(sheetExp.updatedAt || 0).getTime();
+                const localTime = new Date(local.updatedAt || 0).getTime();
+                return localTime > sheetTime ? local : sheetExp;
+            });
+            const localOnly = S.expenses.filter(e => !sheetIds.has(e.id));
+            S.expenses = [...merged, ...localOnly];
             sortExpenses();
             S.gs.lastSyncAt = new Date().toISOString();
             save();
@@ -2075,11 +2084,11 @@
         setPayer('duck');
         renderSplitTiles('sp-', fSplit);
 
-        /* restore rates */
-        if (S.rates) {
-            if (S.rates.TWD_USD) document.getElementById('rate-twd').value = S.rates.TWD_USD;
-            if (S.rates.CNY_USD) document.getElementById('rate-cny').value = S.rates.CNY_USD;
-        }
+        /* restore rates, fall back to defaults */
+        if (!S.rates.TWD_USD) S.rates.TWD_USD = 0.032;
+        if (!S.rates.CNY_USD) S.rates.CNY_USD = 0.15;
+        document.getElementById('rate-twd').value = S.rates.TWD_USD;
+        document.getElementById('rate-cny').value = S.rates.CNY_USD;
 
         /* live custom-split total */
         ['cs-duck', 'cs-sansa', 'cs-huniu'].forEach(id => {

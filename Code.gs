@@ -68,7 +68,7 @@ function pull(sheetName) {
         catch (_) { obj[h] = h === 'among' ? [] : {}; }
       } else if (h === 'date') {
         obj[h] = v instanceof Date
-          ? Utilities.formatDate(v, 'UTC', 'yyyy-MM-dd')
+          ? Utilities.formatDate(v, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd')
           : String(v ?? '').slice(0, 10);
       } else if (h === 'amt') {
         obj[h] = Number(v) || 0;
@@ -104,7 +104,7 @@ function push(sheetName, expenses) {
     const rowData = COLS.map(h => {
       if (h === 'among')     return JSON.stringify(exp.among  || []);
       if (h === 'custom')    return JSON.stringify(exp.custom || {});
-      if (h === 'updatedAt') return now;
+      if (h === 'updatedAt') return exp[h] ? String(exp[h]) : now;
       return exp[h] !== undefined ? String(exp[h]) : '';
     });
 
